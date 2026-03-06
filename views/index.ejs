@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scraping Recipes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --naranja: #E8621A;
+            --naranja-claro: #FFF3EC;
+            --gris-oscuro: #1A1A1A;
+            --gris-medio: #6B6B6B;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAFAFA;
+            color: var(--gris-oscuro);
+        }
+
+        /* HEADER */
+        .hero {
+            background: var(--gris-oscuro);
+            color: white;
+            padding: 60px 0 40px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            line-height: 1.1;
+        }
+
+        .hero h1 span {
+            color: var(--naranja);
+        }
+
+        .hero p {
+            color: #aaa;
+            font-size: 1.1rem;
+        }
+
+        /* FORMULARIO */
+        .buscador {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            margin-top: -30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .form-control-lg {
+            border: 2px solid #E5E5E5;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control-lg:focus {
+            border-color: var(--naranja);
+            box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.15);
+        }
+
+        .btn-primary {
+            background: var(--naranja);
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 12px 28px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background: #c95415;
+            transform: translateY(-1px);
+        }
+
+        /* ROBOTS BADGE */
+        .robot-badge {
+            display: inline-block;
+            background: var(--naranja-claro);
+            color: var(--naranja);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* CARDS DE RECETAS */
+        .receta-card {
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .receta-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.13);
+            color: inherit;
+        }
+
+        .receta-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .receta-card .card-body {
+            padding: 20px;
+            background: white;
+        }
+
+        .receta-card .card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        /* PLACEHOLDER cuando no hay recetas */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gris-medio);
+        }
+
+        .empty-state .icono {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+        }
+
+        /* WEBS SUGERIDAS */
+        .sugerencia {
+            background: var(--naranja-claro);
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            color: var(--gris-medio);
+        }
+
+        .sugerencia strong {
+            color: var(--gris-oscuro);
+        }
+
+        /* SPINNER durante la carga */
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner-overlay.activo {
+            display: flex;
+        }
+
+        .spinner-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.15);
+        }
+
+        .spinner-border {
+            color: var(--naranja);
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SPINNER DE CARGA -->
+    <div class="spinner-overlay" id="spinner">
+        <div class="spinner-box">
+            <div class="spinner-border mb-3" role="status"></div>
+            <p class="mb-0 fw-600">Extrayendo receta...</p>
+            <small class="text-muted">Esto puede tardar unos segundos</small>
+        </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="container">
+            <h1>Traductor<br><span>Universal</span> de Recetas</h1>
+            <p class="mt-3">Pega la URL de cualquier receta y adáptala a tu robot de cocina</p>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="container">
+        <div class="buscador">
+            <% if (error) { %>
+                <div class="alert alert-warning mb-3">
+                    <strong>⚠️ Error:</strong> <%= error %>
+                </div>
+            <% } %>
+
+            <form action="/traducir" method="POST" id="formBuscar">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-9">
+                        <label class="form-label fw-semibold mb-1">URL de la receta</label>
+                        <input
+                            type="url"
+                            name="url"
+                            class="form-control form-control-lg"
+                            placeholder="https://www.directoalpaladar.com/recetas-de..."
+                            required
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            Extraer Receta →
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="sugerencia mt-3">
+                💡 <strong>Webs compatibles:</strong> Directo al Paladar, Cookpad, Recetas de Escándalo, Thermomix, Javi Recetas y cualquier web con datos estructurados de Google.
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTADO DE RECETAS -->
+    <div class="container mt-5 pb-5">
+
+        <% if (recetas.length > 0) { %>
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h2 class="fw-bold mb-0" style="font-family:'Playfair Display',serif">Recetas extraídas</h2>
+                <span class="badge bg-light text-dark border"><%= recetas.length %> receta<%= recetas.length !== 1 ? 's' : '' %></span>
+            </div>
+
+            <div class="row g-4">
+                <% recetas.forEach(receta => { %>
+                    <div class="col-sm-6 col-md-4 col-lg-3">
+                        <a href="/receta/<%= receta.id %>" class="receta-card">
+                            <img
+                                src="<%= receta.imagen || 'https://placehold.co/400x200/f8f8f8/ccc?text=Sin+imagen' %>"
+                                alt="<%= receta.titulo %>"
+                                onerror="this.src='https://placehold.co/400x200/f8f8f8/ccc?text=Sin+imagen'"
+                            >
+                            <div class="card-body">
+                                <div class="robot-badge mb-2"><%= receta.robotOriginal %></div>
+                                <h3 class="card-title"><%= receta.titulo %></h3>
+                                <% if (receta.tiempoTotal) { %>
+                                    <small class="text-muted">⏱ <%= receta.tiempoTotal %></small>
+                                <% } %>
+                            </div>
+                        </a>
+                    </div>
+                <% }) %>
+            </div>
+
+        <% } else { %>
+            <div class="empty-state">
+                <div class="icono">🍳</div>
+                <h4 class="fw-bold">Todavía no hay recetas</h4>
+                <p>Pega una URL arriba para empezar a extraer recetas</p>
+            </div>
+        <% } %>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mostrar spinner al enviar el formulario
+        document.getElementById('formBuscar').addEventListener('submit', function() {
+            document.getElementById('spinner').classList.add('activo');
+        });
+    </script>
+</body>
+</html>
